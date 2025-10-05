@@ -1,0 +1,25 @@
+{
+  "name": "ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "producer": "ts-node src/producer.ts",
+    "consumer": "ts-node src/consumer.ts",
+    "build": "tsc",
+    "start:producer": "node dist/producer.js",
+    "start:consumer": "node dist/consumer.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

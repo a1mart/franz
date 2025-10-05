@@ -1,0 +1,80 @@
+# Certificates and Keys
+ca.crt
+*.crt
+*.pem
+*.jks
+kafka.truststore.jks
+
+# Credentials (if any config files contain them)
+*.env
+.env.*
+secrets/
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/venv/
+**/.venv/
+
+# Node.js/TypeScript
+**/node_modules/
+**/dist/
+**/build/
+**/.npm
+**/package-lock.json
+**/yarn.lock
+
+# Rust
+**/target/
+**/Cargo.lock
+**/**/*.rs.bk
+
+# Go
+**/vendor/
+**/*.exe
+**/*.test
+**/*.out
+
+# Java/Maven
+**/target/
+**/.classpath
+**/.project
+**/.settings/
+**/*.class
+**/dependency-reduced-pom.xml
+
+# Scala/sbt
+**/target/
+**/project/target/
+**/project/project/
+**/.bsp/
+**/.scala-build/
+
+# C/C++
+**/producer
+**/consumer
+**/*.o
+**/*.out
+**/build/
+
+# C#/.NET
+**/bin/
+**/obj/
+**/*.user
+**/.vs/
+
+# Bash
+**/*.log
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+*.log
+*.tmp

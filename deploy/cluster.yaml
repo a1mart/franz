@@ -1,0 +1,159 @@
+---
+# KafkaNodePool for broker and controller nodes (KRaft mode)
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: kraft-pool
+  namespace: data-streaming
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles:
+    - controller
+    - broker
+  storage:
+    type: jbod
+    volumes:
+    - id: 0
+      type: persistent-claim
+      size: 20Gi
+      deleteClaim: false
+      class: longhorn
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: "1"
+    limits:
+      memory: 4Gi
+      cpu: "2"
+  template:
+    persistentVolumeClaim:
+      metadata:
+        annotations:
+          longhorn.io/numberOfReplicas: "1"
+          longhorn.io/staleReplicaTimeout: "30"
+          longhorn.io/dataLocality: "best-effort"
+
+---
+# Kafka cluster configuration (without replicas and storage)
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: data-streaming
+  annotations:
+    strimzi.io/node-pools: enabled
+spec:
+  kafka:
+    version: 4.1.0
+    # NO replicas or storage here - moved to KafkaNodePool
+    
+    # Listeners configuration
+    listeners:
+      # Internal listener for inter-broker communication
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      # Internal TLS listener
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+      # External listener with LoadBalancer (MetalLB)
+      - name: external
+        port: 9094
+        type: loadbalancer
+        tls: true
+        authentication:
+          type: scram-sha-512
+        configuration:
+          # Use per-broker LoadBalancer services
+          bootstrap:
+            loadBalancerIP: "10.0.0.207"
+          brokers:
+          - broker: 0
+            loadBalancerIP: "10.0.0.208"
+          - broker: 1
+            loadBalancerIP: "10.0.0.209"
+          - broker: 2
+            loadBalancerIP: "10.0.0.210"
+    
+    # Kafka configuration
+    config:
+      # Replication settings
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+      
+      # Performance tuning
+      num.network.threads: 3
+      num.io.threads: 8
+      socket.send.buffer.bytes: 102400
+      socket.receive.buffer.bytes: 102400
+      socket.request.max.bytes: 104857600
+      
+      # Log settings
+      log.retention.hours: 168
+      log.segment.bytes: 1073741824
+      log.retention.check.interval.ms: 300000
+    
+    # JVM options
+    jvmOptions:
+      -Xms: 2048m
+      -Xmx: 2048m
+    
+    # Metrics for monitoring (optional)
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: kafka-metrics
+          key: kafka-metrics-config.yml
+  
+  # Entity Operator for managing topics and users
+  entityOperator:
+    topicOperator:
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: "0.5"
+        limits:
+          memory: 512Mi
+          cpu: "0.5"
+    userOperator:
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: "0.5"
+        limits:
+          memory: 512Mi
+          cpu: "0.5"
+
+---
+# Kafka metrics ConfigMap for Prometheus
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-metrics
+  namespace: data-streaming
+data:
+  kafka-metrics-config.yml: |
+    lowercaseOutputName: true
+    rules:
+    - pattern: kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)><>Value
+      name: kafka_server_$1_$2
+      type: GAUGE
+      labels:
+       clientId: "$3"
+       topic: "$4"
+       partition: "$5"
+    - pattern: kafka.server<type=(.+), name=(.+), clientId=(.+), brokerHost=(.+), brokerPort=(.+)><>Value
+      name: kafka_server_$1_$2
+      type: GAUGE
+      labels:
+       clientId: "$3"
+       broker: "$4:$5"
